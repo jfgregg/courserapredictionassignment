@@ -24,7 +24,6 @@ testing <- data[-inTrain,]
 
 ```{r}
 dim(training)
-summary(training)
 ```
 
 ## Initial inspection
@@ -63,7 +62,7 @@ screeplot(pca,type="lines")
 
 Based on the principal component analysis I decided to pre process using seven principal components. My pre processing also involved centering and scaling of data.
 
-#Cross Validation and model creation
+## Cross Validation and model creation
 
 In addition I performed 5 fold cross validation and created a random forest model.
 
@@ -76,7 +75,7 @@ preds <- predict(model,processeddata)
 table(preds,training$classe)
 ```
 
-#Out-of-Sample Error
+## Out-of-Sample Error
 
 The predictions based on the training sample suggest an in-sample error of 0% (this is a concern as it suggests that the model is overfitted to the training data)
 I applied the same pre-processing to the testing data and applied the same model in order to judge the out-of-sample error
@@ -89,7 +88,7 @@ table(preds,testing$classe)
 
 My estimate of the out of sample error based on using the model with the testing data is 8% (633/7846) and the details of my final model are as follows
 
-#Model details
+## Model details
 
 ```{r}
 model
