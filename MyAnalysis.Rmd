@@ -1,0 +1,96 @@
+---
+title: "Prediction Assignment"
+author: "J Gregg"
+date: "25/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+```
+
+## Partitioning the data
+
+After loading the training data I began by partitioning the data into training and testing sets. Assigning 60% of the data to the training set
+
+```{r}
+data <- read.csv("./data/pml-training.csv")
+set.seed(32345)
+inTrain <- createDataPartition(y = data$classe, p = 0.6, list = FALSE)
+training <- data[inTrain,]
+testing <- data[-inTrain,]
+```
+
+```{r}
+dim(training)
+summary(training)
+```
+
+## Initial inspection
+
+After inspecting the dimension of the data, the large number (160) of variables suggested it would be necessary to reduce the number of variables in the model. An inspection of the data revealed that a number of variables (particularly those associated with kurtosis and skewness) were predominantly NA's and so these variables were removed from the data set. In addition parameters with a min or max prefix which appear to have a large number of #DIV/0! errors are removed.
+
+```{r}
+nas <- NULL
+for (i in 1:160){
+  numnas <- is.na(training[,i])
+  nas[i]=sum(numnas)
+}
+training <- training[,nas==0]
+training <- training[,c(8:11,21:42,49:51,61:73,83:93)]
+training[1:52]  <- lapply(training[1:52], as.numeric)
+```
+
+The problem has now been reduced to one containing 56 numeric variables ans the classe variable which I am attempting to fit to.
+
+## Principal Component analysis
+
+It is apparent that there is a large degree of covariance between the variables
+
+```{r}
+M <- abs(cor(training[,-53]))
+diag(M) <- 0
+which(M >0.8,arr.ind=T)
+```
+
+Therefore I will process the data with principal component analysis. The screeplot below shows the variance explained by succesive princial components
+
+```{r}
+pca <- princomp(training[,-53])
+screeplot(pca,type="lines")
+```
+
+Based on the principal component analysis I decided to pre process using seven principal components. My pre processing also involved centering and scaling of data.
+
+#Cross Validation and model creation
+
+In addition I performed 5 fold cross validation and created a random forest model.
+
+```{r}
+trainingprocessed <- preProcess(training, method = c("center","scale","pca"), pcaComp = 7)
+processeddata <- predict(trainingprocessed,training)
+ctrl <- trainControl(method = "cv", number = 5)
+model <- train(classe ~., method = "rf", data = processeddata, trainControl = ctrl)
+preds <- predict(model,processeddata)
+table(preds,training$classe)
+```
+
+#Out-of-Sample Error
+
+The predictions based on the training sample suggest an in-sample error of 0% (this is a concern as it suggests that the model is overfitted to the training data)
+I applied the same pre-processing to the testing data and applied the same model in order to judge the out-of-sample error
+
+```{r}
+processedtestingdata <- predict(trainingprocessed,testing)
+preds <- predict(model,processedtestingdata)
+table(preds,testing$classe)
+```
+
+My estimate of the out of sample error based on using the model with the testing data is 8% (633/7846) and the details of my final model are as follows
+
+#Model details
+
+```{r}
+model
+```
